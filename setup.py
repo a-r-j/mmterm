@@ -25,5 +25,5 @@ setuptools.setup(
     license="MIT",
     keywords="protein structure model trajectory view terminal",
     scripts=["bin/mmterm"],
-    install_requires=["numpy", "biopython", "drawille"],
+    install_requires=["numpy", "biopython", "drawille", "torch"],
 )

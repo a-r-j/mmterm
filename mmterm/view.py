@@ -1,12 +1,13 @@
 # View proteins and trajectories in the terminal
 
-import os
-import sys
 import argparse
 import curses
+import os
+import sys
 from io import StringIO
 
 import numpy as np
+import torch
 from drawille import Canvas, line
 
 zoom_speed = 1.1   # Scale factor / keypress
@@ -138,11 +139,23 @@ def read_inputs(in_file, file_format, curr_model, chains):
         from schrodinger import structure
         struc = list(structure.StructureReader(struct_file))
         get_coords = get_coords_schrodinger
+    elif file_format.lower() == "pt":
+        data = torch.load(struct_file)
+        info = {
+            "num_struc": 1,
+            "chain_ids": ["A"],
+            "res_counter": data.coords.shape[0],
+            "atom_counter": torch.sum(data.coords != 1e-5),
+            "connections": [True] * data.coords.shape[0],
+        }
+        
+        return data.coords[:, 1, :].unsqueeze(0), info
     else:
         print("Unrecognised file format")
         return None, None
 
     coords, info = get_coords(struc, chains)
+    
 
     if coords is None or curr_model > len(coords):
         print("Nothing to show")
@@ -248,7 +261,11 @@ def view(in_file, file_format=None, curr_model=1, chains=[], box_size=100.0):
                 canvas.clear()
                 for x, y in points:
                     canvas.set(x, y)
-                window_structure.addstr(0, 0, canvas.frame())
+                try:
+                    window_structure.addstr(0, 0, canvas.frame())
+                
+                except curses.error:
+                    pass
                 window_structure.refresh()
                 do_update = False
 
